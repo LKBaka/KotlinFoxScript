@@ -1,12 +1,15 @@
 package me.user.Object
 
 import me.user.Environment.ClassEnvironment
+import me.user.Evaluator.FunctionEvaluator.FunctionCaller.callFunction
+import me.user.Evaluator.FunctionEvaluator.applyFunction
+import me.user.OperatorExtension.compareTo
+import me.user.OperatorExtension.get
+import me.user.Utils.BooleanUtils.isTruthy
 import me.user.Utils.BooleanUtils.nativeBooleanToBooleanObject
 import me.user.Utils.ErrorUtils.isError
 import me.user.Utils.ErrorUtils.throwError
-import me.user.OperatorExtension.*
 import java.util.*
-import kotlin.collections.ArrayList
 
 class FoxArray(val elements: ArrayList<FoxObject?>): FoxObject() {
     val env = ClassEnvironment()
@@ -18,6 +21,31 @@ class FoxArray(val elements: ArrayList<FoxObject?>): FoxObject() {
         env.addFunction("notEquals", FoxKotlinFunction(::notEquals, 1, arrayListOf(Type(ObjectType.ARRAY_OBJ))))
         env.addFunction("plus", FoxKotlinFunction(::plus, 1, arrayListOf(Type(ObjectType.ARRAY_OBJ))))
         env.addFunction("get", FoxKotlinFunction(::get, 1, arrayListOf(Type(ObjectType.INTEGER_OBJ))))
+        env.addFunction("all", FoxKotlinFunction(::all, 1, arrayListOf(Type(ObjectType.FUNCTION_OBJ))))
+        env.addFunction("count", FoxKotlinFunction(::count, 0, arrayListOf()))
+    }
+
+    private fun all(args: List<FoxObject?>): FoxObject? {
+        val functionObject = args[0] as FoxFunction
+
+        elements.forEach { element ->
+            val functionResult = applyFunction(functionObject, arrayListOf(element))
+            if (isError(functionResult)) return functionResult
+
+            functionResult?.let {
+                if (it.type() != ObjectType.BOOLEAN_OBJ) return throwError("函数返回值应为布尔值")
+
+                if (!isTruthy(it)) return nativeBooleanToBooleanObject(false)
+            }
+
+            return nativeBooleanToBooleanObject(true)
+        }
+
+        return null
+    }
+
+    private fun count(args: List<FoxObject?>): FoxObject {
+        return FoxInteger(this.elements.count().toBigInteger())
     }
 
     private fun get(args: List<FoxObject?>): FoxObject? {
