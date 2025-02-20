@@ -1,7 +1,9 @@
 package me.user.Environment
 
+import me.user.Evaluator.FunctionEvaluator.FunctionCaller.callFunction
 import me.user.Object.*
 import me.user.Utils.BooleanUtils.nativeBooleanToBooleanObject
+import me.user.Utils.isInstance
 import java.math.BigInteger
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -14,15 +16,53 @@ class BuiltinEnvironment: Environment() {
         addFunction("input", FoxKotlinFunction(::builtinInput,1, arrayListOf(Type(ObjectType.STRING_OBJ))))
         addFunction("input", FoxKotlinFunction(::builtinInput,0, arrayListOf()))
         addFunction("range", FoxKotlinFunction(::builtinRange,1, arrayListOf(Type(ObjectType.INTEGER_OBJ))))
+        addFunction("isInstance", FoxKotlinFunction(::builtinIsInstance,2, arrayListOf(Type(ObjectType.OBJ), Type(ObjectType.OBJ))))
+        addFunction("format", FoxKotlinFunction(::builtinFormat, 2, arrayListOf(Type(ObjectType.STRING_OBJ), Type(ObjectType.ARRAY_OBJ))))
         addFunction("CBool",
             FoxKotlinFunction(::builtinCBool,1, arrayListOf(Type(ObjectType.INTEGER_OBJ, ObjectType.BOOLEAN_OBJ, ObjectType.STRING_OBJ)))
         )
+    }
 
-        setValue("String",Data(FoxString(""), true))
-        setValue("Int",Data(FoxInt(), true))
-        setValue("Integer",Data(FoxInteger(), true))
-        setValue("Boolean",Data(FoxBoolean(false), true))
-        setValue("Double",Data(FoxDouble(), true))
+
+    private fun builtinFormat(args: List<FoxObject?>): FoxObject? {
+        fun format(formatStr: String, args: List<FoxObject?>): FoxString {
+            val pattern = "\\{}".toRegex()
+            val parts = pattern.split(formatStr)
+            val result = StringBuilder()
+
+            for (i in parts.indices) {
+                result.append(parts[i])
+                if (i < args.size) {
+                    args[i]?.let {
+                        result.append(
+                            if (it.type() != ObjectType.CLASS_OBJ) {
+                                it.inspect()
+                            } else {
+                                callFunction("toString", listOf(), (it as FoxClass).env)?.inspect()
+                            }
+                        )
+                    }
+                }
+            }
+
+            return FoxString(result.toString())
+        }
+
+        // 检查参数数量和类型
+        require(args.size == 2 && args[0] is FoxString && args[1] is FoxArray) { return null }
+
+        val formatStr = (args[0] as FoxString).value
+        val objects = (args[1] as FoxArray).elements
+
+        return format(formatStr, objects)
+    }
+
+
+
+    private fun builtinIsInstance(args: List<FoxObject?>): FoxObject? {
+        require(args[0] != null && args[1] != null) {return null}
+
+        return nativeBooleanToBooleanObject(isInstance(args[0]!!, args[1]!!))
     }
 
     private fun builtinCBool(args: List<FoxObject?>): FoxObject? {
