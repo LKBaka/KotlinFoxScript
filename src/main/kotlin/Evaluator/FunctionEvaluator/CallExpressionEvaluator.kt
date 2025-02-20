@@ -7,12 +7,12 @@ import me.user.Evaluator.FunctionEvaluator.FunctionCaller.callFunction
 import me.user.Evaluator.FunctionEvaluator.FunctionCaller.callKotlinFunction
 import me.user.Evaluator.eval
 import me.user.Object.*
-import me.user.Parser.CallExpression
-import me.user.Parser.Identifier
-import me.user.Parser.Node
+import me.user.Parser.*
 import me.user.Utils.ErrorUtils.isError
 import me.user.Utils.ErrorUtils.throwError
 import me.user.Utils.EvaluatorUtils.*
+import me.user.Utils.getPropertyValue
+import me.user.Utils.hasMember
 
 fun evalCallExpression(node: Node, env: Environment): FoxObject? {
     val callExpression = node as CallExpression
@@ -27,6 +27,30 @@ fun evalCallExpression(node: Node, env: Environment): FoxObject? {
         }
 
         return callFunction(name, args, env)
+    }
+
+    if (callExpression.function!!::class == ObjectMemberExpression::class) {
+        val objectMemberExpression = callExpression.function as ObjectMemberExpression
+        val obj = eval(objectMemberExpression.left, env)
+        if (isError(obj)) return obj
+
+        val environment: Environment?
+        if (obj == null || !obj.hasMember("env")) return throwError("方法调用不支持类型为 ${obj?.type()} 的对象")
+
+        environment = obj.getPropertyValue("env") as Environment
+
+        val args = evalExpressions(node.arguments, env)
+        if (args.size == 1 && isError(args[0])) {
+            return args[0]
+        }
+
+        var currentExpression = objectMemberExpression.right
+        while (currentExpression is ObjectMemberExpression) {
+            currentExpression = currentExpression.right
+        }
+
+        val name = (currentExpression as? Identifier ?: return throwError("方法名必须是标识符")).value
+        return callFunction(name, args, environment)
     }
 
     // 若调用函数是匿名函数，则开始执行下面的操作
@@ -105,7 +129,7 @@ fun extendFunctionEnv(func: FoxFunction, args: List<FoxObject?>): Environment {
     }
 
     if (classFunctionCall?.exist == true && baseClassFunctionCall?.exist == true) {
-        TODO("哦我拿着笔，想写点什么东西")
+        // ("哦我拿着笔，想写点什么东西")
     }
 
     return env
