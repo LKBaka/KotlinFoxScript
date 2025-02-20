@@ -6,7 +6,10 @@ import me.user.Evaluator.eval
 import me.user.Object.*
 import me.user.Parser.InfixExpression
 import me.user.Parser.Node
+import me.user.Utils.BooleanUtils.isTruthy
+import me.user.Utils.BooleanUtils.nativeBooleanToBooleanObject
 import me.user.Utils.ErrorUtils.throwError
+import java.math.BigInteger
 
 private typealias infixExpressionEvaluator = (node: Node, env: Environment) -> FoxObject?
 private val infixExpressionEvaluatorMap: Map<ObjectType, infixExpressionEvaluator> = mapOf(
@@ -41,10 +44,16 @@ fun evalIntegerInfixExpression(node: Node, env: Environment): FoxObject? {
         "-" -> callKotlinFunction("minus", arrayListOf(right), left!!.env)
         "*" -> callKotlinFunction("multiply", arrayListOf(right), left!!.env)
         "/" -> callKotlinFunction("divide", arrayListOf(right), left!!.env)
-        "<" -> callKotlinFunction("lessThan", arrayListOf(right), left!!.env)
-        ">" -> callKotlinFunction("moreThan", arrayListOf(right), left!!.env)
+        "<" -> (callKotlinFunction("compareTo", arrayListOf(right), left!!.env)?.getValue() as BigInteger).let {
+            return nativeBooleanToBooleanObject(it == (-1).toBigInteger())
+        }
+        ">" -> (callKotlinFunction("compareTo", arrayListOf(right), left!!.env)?.getValue() as BigInteger).let {
+            return nativeBooleanToBooleanObject(it == 1.toBigInteger())
+        }
         "==" -> callKotlinFunction("equals", arrayListOf(right), left!!.env)
-        "!=" -> callKotlinFunction("notEquals", arrayListOf(right), left!!.env)
+        "!=" -> callKotlinFunction("equals", arrayListOf(right), left!!.env) ?.let {
+            return nativeBooleanToBooleanObject(!isTruthy(it))
+        }
         else -> throwError("不支持的操作: ${left!!.inspect()} ${infixExpression.operator} ${right!!.inspect()}")
     }
 }
@@ -60,10 +69,16 @@ fun evalDoubleInfixExpression(node: Node, env: Environment): FoxObject? {
         "-" -> callKotlinFunction("minus", arrayListOf(right), left!!.env)
         "*" -> callKotlinFunction("multiply", arrayListOf(right), left!!.env)
         "/" -> callKotlinFunction("divide", arrayListOf(right), left!!.env)
-        "<" -> callKotlinFunction("lessThan", arrayListOf(right), left!!.env)
-        ">" -> callKotlinFunction("moreThan", arrayListOf(right), left!!.env)
+        "<" -> (callKotlinFunction("compareTo", arrayListOf(right), left!!.env)?.getValue() as BigInteger).let {
+            return nativeBooleanToBooleanObject(it == (-1).toBigInteger())
+        }
+        ">" -> (callKotlinFunction("compareTo", arrayListOf(right), left!!.env)?.getValue() as BigInteger).let {
+            return nativeBooleanToBooleanObject(it == 1.toBigInteger())
+        }
         "==" -> callKotlinFunction("equals", arrayListOf(right), left!!.env)
-        "!=" -> callKotlinFunction("notEquals", arrayListOf(right), left!!.env)
+        "!=" -> callKotlinFunction("equals", arrayListOf(right), left!!.env) ?.let {
+            return nativeBooleanToBooleanObject(!isTruthy(it))
+        }
         else -> throwError("不支持的操作: ${left!!.inspect()} ${infixExpression.operator} ${right!!.inspect()}")
     }
 }
@@ -76,7 +91,9 @@ fun evalBooleanInfixExpression(node: Node, env: Environment): FoxObject? {
 
     return when (op) {
         "==" -> callKotlinFunction("equals", arrayListOf(right), left!!.env)
-        "!=" -> callKotlinFunction("notEquals", arrayListOf(right), left!!.env)
+        "!=" -> callKotlinFunction("equals", arrayListOf(right), left!!.env) ?.let {
+            return nativeBooleanToBooleanObject(!isTruthy(it))
+        }
         else -> throwError("不支持的操作: ${left!!.inspect()} ${infixExpression.operator} ${right!!.inspect()}")
     }
 }
@@ -103,7 +120,9 @@ fun evalArrayInfixExpression(node: Node, env: Environment): FoxObject? {
 
     return when (op) {
         "==" -> callKotlinFunction("equals", arrayListOf(right), left!!.env)
-        "!=" -> callKotlinFunction("notEquals", arrayListOf(right), left!!.env)
+        "!=" -> callKotlinFunction("equals", arrayListOf(right), left!!.env) ?.let {
+            return nativeBooleanToBooleanObject(!isTruthy(it))
+        }
         "+" -> callKotlinFunction("plus", arrayListOf(right), left!!.env)
         else -> throwError("不支持的操作: ${left!!.inspect()} ${infixExpression.operator} ${right!!.inspect()}")
     }
@@ -117,7 +136,9 @@ fun evalDictionaryInfixExpression(node: Node, env: Environment): FoxObject? {
 
     return when (op) {
         "==" -> callKotlinFunction("equals", arrayListOf(right), left!!.env)
-        "!=" -> callKotlinFunction("notEquals", arrayListOf(right), left!!.env)
+        "!=" -> callKotlinFunction("equals", arrayListOf(right), left!!.env) ?.let {
+            return nativeBooleanToBooleanObject(!isTruthy(it))
+        }
         "+" -> callKotlinFunction("plus", arrayListOf(right), left!!.env)
         else -> throwError("不支持的操作: ${left!!.inspect()} ${infixExpression.operator} ${right!!.inspect()}")
     }
