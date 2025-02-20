@@ -6,8 +6,21 @@ import me.user.Lexer.Lexer
 import me.user.Lexer.StringMap
 import me.user.Lexer.Token
 import me.user.Lexer.TokenType
-import me.user.OperatorExtension.*
-import java.awt.Color
+import me.user.OperatorExtension.compareTo
+import me.user.OperatorExtension.minus
+import me.user.OperatorExtension.plus
+import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
+import kotlin.collections.List
+import kotlin.collections.Map
+import kotlin.collections.MutableMap
+import kotlin.collections.arrayListOf
+import kotlin.collections.count
+import kotlin.collections.getOrNull
+import kotlin.collections.hashMapOf
+import kotlin.collections.mapOf
+import kotlin.collections.mutableMapOf
+import kotlin.collections.set
 
 private typealias prefixParseFunctionType = () -> Expression?
 private typealias infixParseFunctionType = (left: Expression) -> Expression?
@@ -46,7 +59,8 @@ class Parser(lexer: Lexer) {
         TokenType.CLASS to ::parseClassStatement,
         TokenType.LET to ::parseVarDefineStatement,
         TokenType.FOR to ::parseForStatement,
-        TokenType.RETURN to ::parseReturnStatement
+        TokenType.RETURN to ::parseReturnStatement,
+        TokenType.EOL to fun (): Statement? {return null}
     )
 
     private val tokenPrecedences: Map<TokenType, Precedence> = mapOf(
@@ -86,6 +100,7 @@ class Parser(lexer: Lexer) {
 
         // 初始化前缀表达式解析函数表
         prefixParseFunctions[TokenType.IDENT] = ::parseIdentifier
+        prefixParseFunctions[TokenType.IMPORT] = ::parseImportExpression
         prefixParseFunctions[TokenType.NEW] = ::parseObjectCreateExpression
         prefixParseFunctions[TokenType.INTEGER] = ::parseNumberLiteral
         prefixParseFunctions[TokenType.BOOL_TRUE] = ::parseBoolean
@@ -117,6 +132,42 @@ class Parser(lexer: Lexer) {
         infixParseFunctions[TokenType.DOT] = ::parseObjectMemberExpression
     }
 
+    fun parseImportExpression(): Expression? {
+        val importExpression = ImportExpression().apply {
+            token = curToken // 假设 currentToken 是解析器的成员变量
+        }
+
+        // 检查是否为标识符
+        if (!expectPeek(TokenType.IDENT)) {
+            return null
+        }
+
+        // 前进词法单元
+        nextToken()
+
+        importExpression.module = Identifier(curToken.value). apply { token = curToken }
+
+        var lastExpression = importExpression.module
+
+        nextToken()
+        while (curTokenIs(TokenType.DOT) || curTokenIs(TokenType.ASTERISK)) {
+            val objectMemberExpression = ObjectMemberExpression().apply {
+                token = curToken
+            }
+
+            objectMemberExpression.left = lastExpression
+            objectMemberExpression.right = Identifier(peekToken.value). apply { token = peekToken }
+
+            lastExpression = objectMemberExpression
+
+            nextToken()
+            nextToken()
+        }
+
+        importExpression.module = lastExpression
+        return importExpression
+    }
+
     fun parseObjectCreateExpression(): Expression? {
         val objectCreateExpr = ObjectCreateExpression().apply {
             token = curToken // 假设 currentToken 是解析器的成员变量
@@ -146,7 +197,7 @@ class Parser(lexer: Lexer) {
         nextToken()
 
         // 解析类名
-        stmt.name = parseExpression(Precedence.LOWEST)
+        stmt.name = parseExpression(Precedence.IDENT)
         if (stmt.name == null) {
             expectCur(TokenType.IDENT)
             return null
@@ -177,7 +228,7 @@ class Parser(lexer: Lexer) {
         nextToken()
 
         // 解析类主体
-        stmt.body = parseBlockStatement(arrayOf(TokenType.CLASS), arrayOf(true))
+        stmt.body = parseBlockStatement(TokenType.CLASS, true)
 
         return stmt
     }
@@ -447,11 +498,18 @@ class Parser(lexer: Lexer) {
         }
 
         function.parameters = parseFunctionParameters()
+
+        if (peekTokenIs(TokenType.LBRACE)) {
+            nextToken()
+            nextToken()
+        }
+
         function.body = parseBlockStatement(
             arrayOf(TokenType.FUNC, TokenType.RBRACE),
             arrayOf(true, false)
         )
 
+        backToken()
         return function
     }
 
@@ -493,7 +551,7 @@ class Parser(lexer: Lexer) {
         return dict
     }
 
-    private fun parseBlockStatement(endTokenType: TokenType, withEnd: Boolean = true): BlockStatement? {
+    private fun parseBlockStatement(endTokenType: TokenType, withEnd: Boolean = true): BlockStatement {
         val blockStatement = BlockStatement()
         var stmt: Statement? = parseStatement()
 
@@ -527,6 +585,8 @@ class Parser(lexer: Lexer) {
         val blockStatement = BlockStatement()
         // 调用 parseStatement 函数解析一条语句，并将结果存储在 stmt 中，可能为 null
         var stmt: Statement? = parseStatement()
+        stmt?.let { blockStatement.statements.add(it) }
+        nextToken()
 
         // 解析带有特定结束标记的情况
         fun parseWithEnd(endTokenType: TokenType): Boolean {
@@ -561,27 +621,24 @@ class Parser(lexer: Lexer) {
                 if (foundEndToken) break
 
                 // 如果已经到达 token 列表的末尾，返回 false
-                if (tokenPos >= tokens.size - 1) return false
+                if (tokenPos > tokens.size - 1) return false
 
                 // 继续解析下一条语句
                 stmt = parseStatement()
                 stmt?.let { blockStatement.statements.add(it) }
-                // 移动到下一个 token
                 nextToken()
+                // 移动到下一个 token
             }
             return true
         }
 
-        var found = false
-        for (i in 0 until endTokenTypes.size) {
+        for (i in 0..endTokenTypes.count() - 1) {
             if (!tokenTypeWithEnds[i]) {
                 if (parse(endTokenTypes)) {
-                    found = true
                     break
                 }
             } else {
                 if (parseWithEnd(endTokenTypes[i])) {
-                    found = true
                     break
                 }
             }
@@ -666,9 +723,11 @@ class Parser(lexer: Lexer) {
     private fun parseGroupedExpression(): Expression? {
         nextToken()
 
+        if (curTokenIs(TokenType.EOL)) nextToken()
         val expression: Expression? = parseExpression(Precedence.LOWEST)
+        if (peekTokenIs(TokenType.EOL)) nextToken()
 
-        if (!expectCur(TokenType.RPAREN)) {
+        if (!expectPeek(TokenType.RPAREN)) {
             return null
         }
 
@@ -756,10 +815,6 @@ class Parser(lexer: Lexer) {
         nextToken()
         nextToken()
         varDefineStatement.value = parseExpression(Precedence.LOWEST)
-
-        if (!expectPeek(TokenType.EOL)) {
-            return null
-        }
 
         return varDefineStatement
     }
@@ -903,15 +958,15 @@ class Parser(lexer: Lexer) {
 
 
     private fun nextToken() {
-        // 如果索引没有越界
-        if (tokenPos >= (tokens.count() - 1)) {
+        // 如果索引越界
+        if (tokenPos > (tokens.count() - 1)) {
             // 设置TokenType 为 EOF
             curToken = Token(TokenType.EOF, "$nullChar", (-1).toBigInteger())
             peekToken = Token(TokenType.EOF, "$nullChar", (-1).toBigInteger())
         } else { //否则
             // 转到下一个词法单元
             curToken = tokens[tokenPos.toInt()]
-            peekToken = tokens[(tokenPos + 1).toInt()]
+            if (tokenPos + 1 <= tokens.count() - 1) peekToken = tokens[(tokenPos + 1).toInt()]
 
             // 索引 + 1
             tokenPos ++

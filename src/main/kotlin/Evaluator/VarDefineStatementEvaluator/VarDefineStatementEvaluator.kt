@@ -11,7 +11,6 @@ import me.user.Utils.ErrorUtils.isError
 import me.user.Utils.ErrorUtils.throwError
 import me.user.Utils.StringUtils
 import me.user.Utils.isInstance
-import kotlin.math.exp
 
 fun evalVarDefineStatement(node: Node, env: Environment): FoxObject? {
     val expression = node as VarDefineStatement

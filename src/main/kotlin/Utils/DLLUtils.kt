@@ -32,14 +32,14 @@ object DLLUtils {
 
     /**
      * 查找函数并指定返回类型
-     * @param R 返回值类型（如 Int、Long、Pointer 等）
+     * @param 返回值类型（如 Int、Long、Pointer 等）
      */
     fun findFunction(library: NativeLibrary, name: String): Function {
         return library.getFunction(name) as Function
     }
 
     /**
-     * 安全调用函数（带泛型支持）
+     * 安全调用函数
      */
     fun callFunction(function: Function, vararg args: Any): Any {
         return function.invoke(args)

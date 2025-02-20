@@ -1,12 +1,8 @@
 package me.user.Parser
 
-import me.user.Constant.*
-import me.user.Environment.Environment
-import me.user.Environment.FunctionEnvironment
+import me.user.Constant.cr
+import me.user.Constant.space
 import me.user.Lexer.Token
-import me.user.Lexer.TokenType
-import me.user.Object.ObjectType
-import me.user.Object.Type
 import me.user.Utils.StringUtils
 import java.math.BigDecimal
 import java.math.BigInteger
@@ -371,7 +367,7 @@ class ArrayLiteral: Expression {
             }
         }
 
-        return "[${exprStrings.joinToString(", ")}}]"
+        return "[${exprStrings.joinToString(", ")}]"
     }
 }
 
@@ -607,3 +603,17 @@ class ObjectCreateExpression : Expression {
         return "New $typeName($args)"
     }
 }
+
+class ImportExpression : Expression {
+    var token: Token? = null
+    var module: Expression? = null
+
+    override fun tokenLiteral(): String {
+        return token?.value ?: ""
+    }
+
+    override fun toString(): String {
+        return "Import $module"
+    }
+}
+

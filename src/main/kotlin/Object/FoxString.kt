@@ -13,6 +13,22 @@ class FoxString(val value: String): FoxObject() {
         env.addFunction("equals", FoxKotlinFunction(::equals, 1, arrayListOf(Type(ObjectType.STRING_OBJ))))
         env.addFunction("notEquals", FoxKotlinFunction(::notEquals, 1, arrayListOf(Type(ObjectType.STRING_OBJ))))
         env.addFunction("plus", FoxKotlinFunction(::plus, 1, arrayListOf(Type(ObjectType.STRING_OBJ))))
+        env.addFunction("count", FoxKotlinFunction(::count, 0, arrayListOf()))
+        env.addFunction("toArray", FoxKotlinFunction(::toArray, 0, arrayListOf()))
+    }
+
+    private fun toArray(args: List<FoxObject?>): FoxObject {
+        val array = arrayListOf<FoxObject?>()
+
+        value.forEach {
+            array.add(FoxString("$it"))
+        }
+
+        return FoxArray(array)
+    }
+
+    private fun count(args: List<FoxObject?>): FoxObject {
+        return FoxInteger(this.value.count().toBigInteger())
     }
 
     private fun plus(args: List<FoxObject?>): FoxObject? {
@@ -47,10 +63,6 @@ class FoxString(val value: String): FoxObject() {
             ObjectType.STRING_OBJ -> notEquals(args[0]!! as FoxString)
             else -> null
         }
-    }
-
-    override fun equals(other: Any?): Boolean {
-        return super.equals(other)
     }
 
     override fun inspect(): String {

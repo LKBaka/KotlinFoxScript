@@ -32,7 +32,8 @@ fun evalObjectCreateExpression(node: Node, env: Environment): FoxObject? {
                 uuid = classObj.uuid
             }
 
-            extendClassEnv(newObj)
+            newObj = extendClassEnv(newObj) as FoxClass
+            
             val result = eval(newObj.body, newObj.env)
             if (isError(result)) return result
 

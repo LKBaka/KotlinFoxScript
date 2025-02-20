@@ -1,6 +1,7 @@
 package me.user.Evaluator
 
 import me.user.Environment.BuiltinEnvironment
+import me.user.Environment.Data
 import me.user.Environment.Environment
 import me.user.Evaluator.ArrayLiteralEvaluator.evalArrayLiteral
 import me.user.Evaluator.DeclareStatementEvaluator.evalDeclareStatement
@@ -9,6 +10,7 @@ import me.user.Evaluator.FunctionEvaluator.evalCallExpression
 import me.user.Evaluator.FunctionEvaluator.evalFunctionExpression
 import me.user.Evaluator.IdentifierEvaluator.evalIdentifier
 import me.user.Evaluator.IfExpression.evalIfExpression
+import me.user.Evaluator.ImportEvaluator.evalImportExpression
 import me.user.Evaluator.IndexExpressionEvaluator.evalIndexExpression
 import me.user.Evaluator.InfixExpressionEvaluator.evalInfixExpression
 import me.user.Evaluator.LogicalExpressionEvaluator.evalLogicalExpression
@@ -49,10 +51,11 @@ private val nodeHandlerMap: Map<KClass<out Node>, nodeHandler> = mapOf(
     CallExpression::class to ::evalCallExpression,
     ClassStatement::class to ::evalClassStatement,
     ObjectCreateExpression::class to ::evalObjectCreateExpression,
-//    DeclareStatement::class to ::evalDeclareStatement,
+    DeclareStatement::class to ::evalDeclareStatement,
     ArrayLiteral::class to ::evalArrayLiteral,
     IndexExpression::class to ::evalIndexExpression,
     DictionaryLiteral::class to ::evalHashLiteral,
+    ImportExpression::class to ::evalImportExpression,
     ReturnStatement::class to fun (node: Node, env: Environment): FoxObject {return FoxReturnValue(eval((node as ReturnStatement).returnValue, env))},
     ExpressionStatement::class to fun (node: Node, env: Environment): FoxObject? {return eval((node as ExpressionStatement).expression, env)}
 )
@@ -72,6 +75,12 @@ fun eval(node: Node?, env: Environment): FoxObject? {
 }
 
 fun evalProgram(node: Node, env: Environment): FoxObject? {
+    env.setValue("String", Data(FoxString(""), true))
+    env.setValue("Int", Data(FoxInt(), true))
+    env.setValue("Integer", Data(FoxInteger(), true))
+    env.setValue("Boolean", Data(FoxBoolean(false), true))
+    env.setValue("Double", Data(FoxDouble(), true))
+
     val program: Program = node as Program
     var result: FoxObject? = null
 

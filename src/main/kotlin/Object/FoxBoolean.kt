@@ -36,10 +36,6 @@ class FoxBoolean(val value: Boolean): FoxObject() {
         }
     }
 
-    override fun equals(other: Any?): Boolean {
-        return super.equals(other)
-    }
-
     override fun inspect(): String {
         return "$value"
     }

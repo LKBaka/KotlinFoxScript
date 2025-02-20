@@ -3,9 +3,11 @@ package me.user.Evaluator.IndexExpressionEvaluator
 import me.user.Environment.Environment
 import me.user.Evaluator.FunctionEvaluator.FunctionCaller.callKotlinFunction
 import me.user.Evaluator.eval
-import me.user.Object.*
+import me.user.Object.FoxArray
+import me.user.Object.FoxDictionary
+import me.user.Object.FoxObject
+import me.user.Object.ObjectType
 import me.user.Parser.IndexExpression
-import me.user.Parser.InfixExpression
 import me.user.Parser.Node
 import me.user.Utils.ErrorUtils.isError
 import me.user.Utils.ErrorUtils.throwError

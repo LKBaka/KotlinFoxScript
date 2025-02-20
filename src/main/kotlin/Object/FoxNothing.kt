@@ -1,10 +1,6 @@
 package me.user.Object
 
-import me.user.Environment.ClassEnvironment
-
 class FoxNothing(val value: Nothing? = null): FoxObject() {
-    val env = ClassEnvironment()
-
     override fun inspect(): String {
         return "Nothing"
     }

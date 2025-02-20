@@ -1,8 +1,7 @@
 package me.user.Object
 
-import me.user.Utils.ErrorUtils.throwError
 import me.user.Utils.ObjNothing
-import java.util.UUID
+import java.util.*
 
 enum class ObjectType {
     OBJ,
@@ -22,7 +21,9 @@ enum class ObjectType {
     DICTIONARY_VALUE_OBJ,
     DOUBLE_OBJ,
     CLASS_OBJ,
-    KT_CLASS_OBJ
+    KT_CLASS_OBJ,
+    COMPILED_FUNCTION_OBJ,
+    KT_COMPILED_FUNCTION_OBJ
 }
 
 interface IFoxObject{
@@ -55,15 +56,13 @@ open class FoxObject: IFoxObject {
     }
 
     companion object {
-        fun fromNative(value: Any): FoxObject? {
-            value?.let {
-                return when (value) {
-                    is Int -> FoxInteger((value as Int).toBigInteger())
-                    else -> throwError("暂不支持 ${value::class} 类型的值")
+        fun fromNative(result: Any?) =
+            result?.let {
+                when (result) {
+                    is Int -> FoxInteger(result.toBigInteger())
+                    is Unit -> ObjNothing
+                    else -> TODO("未知的类型: ${result::class}")
                 }
-            }
-
-            return ObjNothing
-        }
+            } ?: ObjNothing
     }
 }

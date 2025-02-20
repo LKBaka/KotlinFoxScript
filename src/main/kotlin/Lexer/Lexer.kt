@@ -25,7 +25,7 @@ class Lexer(private val code: String) {
     }
 
     private fun isValidChar(char: Char): Boolean {
-        return char.isLetterOrDigit() || char == '_' || isEmoji(char)
+        return char != nullChar && (char.isLetterOrDigit() || char == '_' || isEmoji(char))
     }
 
     private fun peekChar(): Char {
@@ -95,10 +95,6 @@ class Lexer(private val code: String) {
                 }
             }
 
-            "$cr", "$lf", newLine, ";" -> {
-                token.tokenType = TokenType.EOL
-            }
-
             "\"" -> {
                 token.tokenType = TokenType.STRING
                 if (code.count() - 1 >= (pos + 2).toInt() && peekChar() == '"' && code[(nextPos + 1).toInt()] == '"') {
@@ -166,7 +162,7 @@ class Lexer(private val code: String) {
         var exitWhile = false
         while (!exitWhile) {
             readChar()
-            if (currentChar == '"' || currentChar == lf) {
+            if ((currentChar == '"' || currentChar == lf) && currentChar != nullChar) {
                 exitWhile = true
             }
         }
@@ -179,16 +175,44 @@ class Lexer(private val code: String) {
         return TokenType.IDENT
     }
 
-    private fun readIdentifier(): String {
-        val startPos = pos
+    private fun backChar() {
+        if (pos <= 0 || nextPos < 0) {
+            currentChar = nullChar
+        } else {
+            nextPos = pos
+            pos--
 
-        readChar()
-        while (pos <= code.count() - 1 && isValidChar(currentChar)) {
-            readChar()
+            currentChar = code[pos.toInt()]
+            if (currentChar == lf) {
+                line--
+            }
+        }
+    }
+
+    private fun readIdentifier(): String {
+//        val startPos = pos
+//
+//        readChar()
+//        while (isValidChar(currentChar)) {
+//            readChar()
+//        }
+//
+//        return if (startPos == pos) "${code[startPos.toInt()]}" else {
+//            code.substring(startPos.toInt(), pos.toInt())
+//        }
+
+        val identifierRegex = Regex("[a-zA-Z_\\p{L}\\p{N}](?:[a-zA-Z_\\p{L}\\p{N}\\x{1F600}-\\x{1F64F}\\x{1F900}-\\x{1F9FF}\\x{2600}-\\x{26FF}\\x{2700}-\\x{27BF}])*")
+        val matchResult = identifierRegex.find(code, pos.toInt())
+
+        matchResult?.let {
+            it.value.forEach { _ ->
+                readChar()
+            }
         }
 
-        return code.substring(startPos.toInt(),pos.toInt())
+        return matchResult?.value ?: ""
     }
+
     private fun readIntNumber(): String {
         val startPos = pos
 

@@ -49,3 +49,7 @@ operator fun BigDecimal.div(value: BigInteger): BigDecimal {
 operator fun BigDecimal.times(value: BigInteger): BigDecimal {
     return this.multiply(value.toBigDecimal())
 }
+
+operator fun String.not(): Boolean {
+    return this.isEmpty()
+}

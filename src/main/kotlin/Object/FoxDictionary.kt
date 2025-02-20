@@ -166,7 +166,7 @@ class FoxDictionary : FoxObject() {
         return ObjectType.DICTIONARY_OBJ
     }
 
-    override fun getValue(): Any? {
+    override fun getValue(): Any {
         return pairs
     }
 }

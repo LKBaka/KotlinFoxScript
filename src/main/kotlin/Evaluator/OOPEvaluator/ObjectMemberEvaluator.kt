@@ -7,7 +7,6 @@ import me.user.Parser.Node
 import me.user.Parser.ObjectMemberExpression
 import me.user.Utils.ErrorUtils.isError
 import me.user.Utils.ErrorUtils.throwError
-import me.user.Utils.getProperty
 import me.user.Utils.getPropertyValue
 import me.user.Utils.hasMember
 

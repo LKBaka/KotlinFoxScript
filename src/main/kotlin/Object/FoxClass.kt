@@ -1,13 +1,9 @@
 package me.user.Object
 
 import me.user.Environment.ClassEnvironment
-import me.user.Environment.Environment
-import me.user.Environment.FunctionEnvironment
 import me.user.Parser.BlockStatement
-import me.user.Parser.Expression
 import me.user.Parser.Identifier
 import java.util.*
-import kotlin.collections.ArrayList
 
 class FoxClass: FoxObject() {
     var body: BlockStatement? = null

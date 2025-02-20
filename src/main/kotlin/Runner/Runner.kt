@@ -1,16 +1,26 @@
 package me.user.Runner
 
+import me.user.Compiler.Compiler.Compiler
+import me.user.Compiler.SymbolTable.SymbolTable
 import me.user.Constant.lf
+import me.user.Environment.Data
 import me.user.Environment.Environment
 import me.user.Lexer.Lexer
-import me.user.Lexer.Token
 import me.user.Lexer.TokenType
+import me.user.Lexer.TokenType.*
+import me.user.Object.FoxArray
 import me.user.Object.FoxObject
+import me.user.Object.FoxString
+import me.user.Parser.BlockStatement
 import me.user.Parser.Parser
 import me.user.Utils.ErrorUtils.isError
+import me.user.Utils.getCurrentDirectory
+import me.user.VM.VM.VM
 import java.io.File
 import java.io.FileNotFoundException
 import java.nio.charset.Charset
+import java.util.*
+import kotlin.io.path.Path
 
 enum class RunMode {
     REPL,
@@ -27,13 +37,94 @@ fun eval(code: String,env: Environment): FoxObject? {
     return me.user.Evaluator.eval(program, env)
 }
 
+fun compileEval(
+    code: String,
+    symbolTable: SymbolTable = SymbolTable(),
+    globals: ArrayList<FoxObject> = arrayListOf(),
+    constants: ArrayList<FoxObject> = arrayListOf()
+): FoxObject? {
+    val lexer = Lexer(code)
+    val parser = Parser(lexer)
+    val program = parser.parseProgram()
+
+    if (parser.checkParseError()) {return null}
+
+    val compiler = Compiler(symbolTable, constants)
+    val compileResult = compiler.compile(program)
+    compileResult?.onFailure { err -> println("compiler error: ${err.message}"); err.printStackTrace(); return null}
+
+    val vm = VM(compiler.byteCode(), globals)
+    val result = vm.run()
+    result.onFailure { err -> println("runtime error: ${err.message}"); err.printStackTrace(); return null }
+
+    return vm.lastPoppedStackElem()
+}
+
+class ModuleRunner(private val filePath: String) {
+    private val appPath = getCurrentDirectory()
+
+    fun run(env: Environment): BlockStatement? {
+        if (!File(filePath).exists()) {
+            println("找不到文件 $filePath")
+            return null
+        }
+
+            val file = File(filePath)
+            val code = file.readText(Charset.defaultCharset())
+
+            env.setValue(
+                "ModulePath",
+                Data(
+                    FoxArray(
+                        arrayListOf(
+                            FoxString("${appPath}//includes//"),
+                            FoxString(File(filePath).parent)
+                        )
+                    ),
+                    true
+                ),
+                true
+            )
+
+            val lexer = Lexer(code)
+            val parser = Parser(lexer)
+            val program = parser.parseProgram()
+
+            if (parser.checkParseError()) {return null}
+
+            val result: FoxObject? = eval(code, env)
+            result?.let {
+                if (isError(result)) println("${result.inspect()} 在 $filePath")
+            }
+
+        return BlockStatement().apply { statements.addAll(program.statements) }
+    }
+}
+
 class FileRunner(private val filePath: String) {
+    private val appPath = getCurrentDirectory()
+
     fun run() {
         try {
             val file = File(filePath)
             val code = file.readText(Charset.defaultCharset())
 
-            val result: FoxObject? = eval(code, Environment())
+            val env = Environment()
+            env.setValue(
+                "ModulePath",
+                Data(
+                    FoxArray(
+                        arrayListOf(
+                            FoxString("${appPath}\\includes\\"),
+                            FoxString(File(filePath).parent)
+                        )
+                    ),
+                    true
+                ),
+                true
+            )
+
+            val result: FoxObject? = eval(code, env)
             result?.let {
                 if (isError(result)) println(result.inspect())
             }
@@ -43,75 +134,105 @@ class FileRunner(private val filePath: String) {
         }
     }
 }
+
 class REPLRunner {
+    private val appPath = getCurrentDirectory()
+
+    private val multiLineDelimiters = mapOf(
+        IF to END,
+        WHILE to END,
+        FOR to NEXT,
+        FUNC to END,
+        CLASS to END,
+        TRY to END,
+        LPAREN to RPAREN,
+        LBRACE to RBRACE
+    )
+
     fun run() {
         val env = Environment()
+        env.setValue(
+            "ModulePath",
+            Data(
+                FoxArray(
+                    arrayListOf(FoxString("${appPath}\\includes\\"))
+                ),
+                true
+            ),
+            true
+        )
 
         while (true) {
             print(">>> ")
-            var code: String = readln() + lf
-            val multilineCode = readMultiLineInput(code)
+            val initialInput = readln().trim()
+            if (initialInput.isEmpty()) continue
 
-            if (multilineCode != "") code = multilineCode
+            val fullCode = readMultiLineInput(initialInput)
+            val result = eval(fullCode, env)
+            result?.let { println(it.inspect()) }
+        }
+    }
 
-            val result: FoxObject? = eval(code, env)
+    private fun readMultiLineInput(initialLine: String): String {
+        val lines = mutableListOf(initialLine)
+        var delimiterStack = Stack<TokenType>()
 
-            if (result != null) {
-                println(result.inspect())
+        var continueLoop = true
+        while (continueLoop) {
+            val currentCode = lines.joinToString("\n")
+            analyzeTokens(currentCode).let { newStack ->
+                continueLoop = newStack.isNotEmpty()
+                delimiterStack = newStack
             }
-        }
-    }
 
-    private fun getTokenTypes(tokens: ArrayList<Token>): ArrayList<TokenType> {
-        val tokenTypes = ArrayList<TokenType>()
-        if (tokens.isEmpty()) {
-            return tokenTypes
-        }
-        for (tkn in tokens) {
-            tokenTypes.add(tkn.tokenType)
-        }
-        return tokenTypes
-    }
-
-
-    private fun readMultiLineInput(line: String): String {
-        var code = ""
-        val tokens = Lexer(line).getTokens()
-        val tokenTypes = getTokenTypes(tokens)
-        val tokenTypePos = 0
-
-        var curTokenType = tokenTypes[tokenTypePos]
-
-        val multiLineTokenTypeDictionary = HashMap<TokenType, TokenType>()
-        multiLineTokenTypeDictionary[TokenType.IF] = TokenType.END
-        multiLineTokenTypeDictionary[TokenType.WHILE] = TokenType.END
-        multiLineTokenTypeDictionary[TokenType.FOR] = TokenType.NEXT
-        multiLineTokenTypeDictionary[TokenType.FUNC] = TokenType.END
-        multiLineTokenTypeDictionary[TokenType.CLASS] = TokenType.END
-        multiLineTokenTypeDictionary[TokenType.TRY] = TokenType.END
-        multiLineTokenTypeDictionary[TokenType.LPAREN] = TokenType.RPAREN
-        multiLineTokenTypeDictionary[TokenType.LBRACE] = TokenType.RBRACE
-
-        for ((startTokenType) in multiLineTokenTypeDictionary) {
-            if (!tokenTypes.contains(startTokenType)) continue
-            if (tokenTypes.contains(startTokenType) && tokenTypes.contains(multiLineTokenTypeDictionary[startTokenType])) continue
-            val lines = ArrayList<String>()
-            var input: String
-            lines.add(line)
-            while (curTokenType!= multiLineTokenTypeDictionary[startTokenType]) {
+            if (continueLoop) {
                 print("... ")
-                input = readln() + lf
-                lines.add(input)
+                val line = readln().trim()
 
-                tokens.clear()
-                tokens.addAll(Lexer(input).getTokens())
-                tokenTypes.clear()
-                tokenTypes.addAll(getTokenTypes(tokens))
-                curTokenType = tokenTypes[0]
+                // 检查是否输入了结束标志
+                if (line.isNotEmpty() && !isLineWithEndDelimiter(line)) {
+                    lines.add(line)
+                } else {
+                    analyzeTokens(line).let { newStack ->
+                        continueLoop = newStack.isNotEmpty()
+                        delimiterStack = newStack
+                    }
+
+                    lines.add(line)
+                }
             }
-            code = lines.joinToString("\n")
         }
-        return code
+
+        return lines.joinToString("$lf")
+    }
+
+    private fun isLineWithEndDelimiter(line: String): Boolean {
+        return line.uppercase().contains("END") || line.contains("}") || line.contains(")")
+    }
+
+    private fun analyzeTokens(code: String): Stack<TokenType> {
+        val stack = Stack<TokenType>()
+        val tokens = Lexer(code).getTokens()
+
+        tokens.forEach { token ->
+            when (token.tokenType) {
+                // 检测函数定义的结束
+                FUNC -> stack.push(FUNC)
+                IF -> stack.push(IF)
+                CLASS -> stack.push(CLASS)
+                WHILE -> stack.push(WHILE)
+                FOR -> stack.push(FOR)
+                LPAREN -> stack.push(LPAREN)
+                LBRACKET -> stack.push(LBRACKET)
+                END -> {
+                    if (stack.isNotEmpty() && multiLineDelimiters.containsKey(stack.peek())) {
+                        stack.pop()
+                    }
+                }
+                else -> {}
+            }
+        }
+        return stack
     }
 }
 

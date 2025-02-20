@@ -4,7 +4,7 @@ import java.util.*
 import kotlin.collections.ArrayList
 
 typealias functionDelegate = (args: List<FoxObject?>) -> FoxObject?
-class FoxKotlinFunction(val function: functionDelegate, val argsCount: Int, val argTypes: List<Type> = listOf()): FoxObject() {
+class FoxKotlinFunction(val function: functionDelegate, val paramsCount: Int, val paramTypes: List<Type> = listOf()): FoxObject() {
     init {
         this.uuid = UUID.randomUUID()
     }
@@ -23,13 +23,13 @@ class FoxKotlinFunction(val function: functionDelegate, val argsCount: Int, val 
     }
 
     private fun argsToString(): String {
-        if (argTypes.isNotEmpty()) {
+        if (paramTypes.isNotEmpty()) {
             val stringBuilder = StringBuilder()
 
             val stringList: ArrayList<String> = arrayListOf()
 
             var argIndex = 1
-            for (argumentType in argTypes) {
+            for (argumentType in paramTypes) {
                 stringList.add("arg$argIndex: ${argTypeToString(argumentType)}")
                 argIndex ++
             }

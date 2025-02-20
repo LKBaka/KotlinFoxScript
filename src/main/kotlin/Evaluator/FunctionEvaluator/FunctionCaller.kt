@@ -26,9 +26,9 @@ fun callKotlinFunction(name: String, args: List<FoxObject?>, env: Environment): 
     var function: FoxKotlinFunction? = null
     for (func in functions) {
         val f = func as FoxKotlinFunction
-        val argTypes = replaceObj(f.argTypes, callArgTypes)
+        val argTypes = replaceObj(f.paramTypes, callArgTypes)
 
-        if (args.count() == f.argsCount && callArgTypes == argTypes) {
+        if (args.count() == f.paramsCount && callArgTypes == argTypes) {
             function = f
         }
     }

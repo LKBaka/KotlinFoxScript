@@ -3,7 +3,7 @@ package me.user.Utils
 import me.user.Object.*
 import me.user.Utils.ErrorUtils.*
 
-fun extendClassEnv(clsObj: FoxClass): FoxObject? {
+fun extendClassEnv(clsObj: FoxClass): FoxObject {
     clsObj.baseClass?.let { base ->
         if (isError(base)) return base
 

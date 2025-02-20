@@ -1,5 +1,8 @@
 package me.user.Lexer
 
+import me.user.Constant.cr
+import me.user.Constant.lf
+import me.user.Constant.newLine
 import java.math.BigInteger
 
 enum class TokenType {
@@ -92,8 +95,10 @@ val TokenTypeMap = mapOf(
     "NOT" to TokenType.BOOL_NOT,
     "<" to TokenType.LT,
     ">" to TokenType.GT,
-    ";" to TokenType.SEMICOLON,
-    "\r\n" to TokenType.EOL,
+    ";" to TokenType.EOL,
+    "$cr" to TokenType.EOL,
+    "$lf" to TokenType.EOL,
+    newLine to TokenType.EOL,
     "TRUE" to TokenType.BOOL_TRUE,
     "FALSE" to TokenType.BOOL_FALSE,
     "RETURN" to TokenType.RETURN,
