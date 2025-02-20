@@ -6,6 +6,7 @@ import me.user.Parser.Node
 import me.user.Parser.PrefixExpression
 import me.user.Evaluator.eval
 import me.user.Object.*
+import me.user.OperatorExtension.not
 import me.user.Utils.BooleanUtils.FoxFalse
 import me.user.Utils.BooleanUtils.FoxTrue
 import me.user.Utils.ErrorUtils.throwError
@@ -45,7 +46,7 @@ private fun evalBangOperatorExpression(node: Node?, env: Environment): FoxObject
             }
         }
         ObjectType.BOOLEAN_OBJ -> FoxBoolean(!(right as FoxBoolean).value)
+        ObjectType.STRING_OBJ -> FoxBoolean(!(right as FoxString).value)
         else -> null
     }
 }
-
