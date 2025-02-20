@@ -150,10 +150,8 @@ class FoxInteger(val value: BigInteger = 0.toBigInteger()): FoxObject() {
         env.addFunction("minus", FoxKotlinFunction(::minus, 1, arrayListOf(Type(ObjectType.INTEGER_OBJ))))
         env.addFunction("multiply", FoxKotlinFunction(::multiply, 1, arrayListOf(Type(ObjectType.INTEGER_OBJ))))
         env.addFunction("divide", FoxKotlinFunction(::divide, 1, arrayListOf(Type(ObjectType.INTEGER_OBJ))))
-        env.addFunction("moreThan", FoxKotlinFunction(::moreThan, 1, arrayListOf(Type(ObjectType.INTEGER_OBJ))))
-        env.addFunction("lessThan", FoxKotlinFunction(::lessThan, 1, arrayListOf(Type(ObjectType.INTEGER_OBJ))))
+        env.addFunction("compareTo", FoxKotlinFunction(::compareTo, 1, arrayListOf(Type(ObjectType.INTEGER_OBJ))))
         env.addFunction("equals", FoxKotlinFunction(::equals, 1, arrayListOf(Type(ObjectType.INTEGER_OBJ))))
-        env.addFunction("notEquals", FoxKotlinFunction(::notEquals, 1, arrayListOf(Type(ObjectType.INTEGER_OBJ))))
         env.addFunction("toInt", FoxKotlinFunction(::toInt, 0, arrayListOf()))
     }
 
@@ -173,17 +171,6 @@ class FoxInteger(val value: BigInteger = 0.toBigInteger()): FoxObject() {
 
         return when (args[0]!!.type()) {
             ObjectType.INTEGER_OBJ -> equals(args[0]!! as FoxInteger)
-            else -> null
-        }
-    }
-
-    private fun notEquals(args: List<FoxObject?>): FoxObject? {
-        fun notEquals(right: FoxInteger?): FoxObject {
-            return nativeBooleanToBooleanObject(value != right!!.value)
-        }
-
-        return when (args[0]!!.type()) {
-            ObjectType.INTEGER_OBJ -> notEquals(args[0]!! as FoxInteger)
             else -> null
         }
     }
@@ -235,24 +222,13 @@ class FoxInteger(val value: BigInteger = 0.toBigInteger()): FoxObject() {
         }
     }
 
-    private fun moreThan(args: List<FoxObject?>): FoxObject? {
-        fun moreThan(right: FoxInteger?): FoxObject {
-            return nativeBooleanToBooleanObject(value > right!!.value)
+    private fun compareTo(args: List<FoxObject?>): FoxObject? {
+        fun compareTo(right: FoxInteger?): FoxObject {
+            return FoxInteger(value.compareTo(right?.value).toBigInteger())
         }
 
         return when (args[0]!!.type()) {
-            ObjectType.INTEGER_OBJ -> moreThan(args[0]!! as FoxInteger)
-            else -> null
-        }
-    }
-
-    private fun lessThan(args: List<FoxObject?>): FoxObject? {
-        fun lessThan(right: FoxInteger?): FoxObject {
-            return nativeBooleanToBooleanObject(value < right!!.value)
-        }
-
-        return when (args[0]!!.type()) {
-            ObjectType.INTEGER_OBJ -> lessThan(args[0]!! as FoxInteger)
+            ObjectType.INTEGER_OBJ -> compareTo(args[0]!! as FoxInteger)
             else -> null
         }
     }

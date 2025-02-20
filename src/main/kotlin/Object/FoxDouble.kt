@@ -1,11 +1,10 @@
 package me.user.Object
 
-import me.user.Environment.*
+import me.user.Environment.ClassEnvironment
+import me.user.OperatorExtension.*
 import me.user.Utils.BooleanUtils.nativeBooleanToBooleanObject
 import me.user.Utils.ErrorUtils.throwError
 import java.math.BigDecimal
-import me.user.OperatorExtension.*
-import java.math.BigInteger
 import java.util.*
 
 class FoxDouble(val value: BigDecimal = 0.toBigDecimal()): FoxObject() {
@@ -18,10 +17,24 @@ class FoxDouble(val value: BigDecimal = 0.toBigDecimal()): FoxObject() {
         env.addFunction("minus", FoxKotlinFunction(::minus, 1, arrayListOf(Type(ObjectType.DOUBLE_OBJ, ObjectType.INTEGER_OBJ))))
         env.addFunction("multiply", FoxKotlinFunction(::multiply, 1, arrayListOf(Type(ObjectType.DOUBLE_OBJ, ObjectType.INTEGER_OBJ))))
         env.addFunction("divide", FoxKotlinFunction(::divide, 1, arrayListOf(Type(ObjectType.DOUBLE_OBJ, ObjectType.INTEGER_OBJ))))
-        env.addFunction("moreThan", FoxKotlinFunction(::moreThan, 1, arrayListOf(Type(ObjectType.DOUBLE_OBJ, ObjectType.INTEGER_OBJ))))
-        env.addFunction("lessThan", FoxKotlinFunction(::lessThan, 1, arrayListOf(Type(ObjectType.DOUBLE_OBJ, ObjectType.INTEGER_OBJ))))
+        env.addFunction("compareTo", FoxKotlinFunction(::compareTo, 1, arrayListOf(Type(ObjectType.DOUBLE_OBJ, ObjectType.INTEGER_OBJ))))
         env.addFunction("equals", FoxKotlinFunction(::equals, 1, arrayListOf(Type(ObjectType.DOUBLE_OBJ, ObjectType.INTEGER_OBJ))))
-        env.addFunction("notEquals", FoxKotlinFunction(::notEquals, 1, arrayListOf(Type(ObjectType.DOUBLE_OBJ, ObjectType.INTEGER_OBJ))))
+    }
+
+    private fun compareTo(args: List<FoxObject?>): FoxObject? {
+        fun compareTo(right: FoxDouble?): FoxObject {
+            return FoxInteger(value.compareTo(right?.value).toBigInteger())
+        }
+
+        fun compareTo(right: FoxInteger): FoxObject {
+            return FoxInteger(value.compareTo(right.value).toBigInteger())
+        }
+
+        return when (args[0]!!.type()) {
+            ObjectType.DOUBLE_OBJ -> compareTo(args[0]!! as FoxDouble)
+            ObjectType.INTEGER_OBJ -> compareTo(args[0]!! as FoxInteger)
+            else -> null
+        }
     }
 
     private fun equals(args: List<FoxObject?>): FoxObject? {
@@ -34,20 +47,6 @@ class FoxDouble(val value: BigDecimal = 0.toBigDecimal()): FoxObject() {
         return when (args[0]!!.type()) {
             ObjectType.INTEGER_OBJ -> equals(args[0] as? FoxInteger)
             ObjectType.DOUBLE_OBJ -> equals(args[0] as? FoxDouble)
-            else -> null
-        }
-    }
-
-    private fun notEquals(args: List<FoxObject?>): FoxObject? {
-        fun notEquals(right: FoxDouble?): FoxObject {
-            return nativeBooleanToBooleanObject(value.compareTo(right!!.value) != 0)
-        }
-        fun notEquals(right: FoxInteger?): FoxObject {
-            return nativeBooleanToBooleanObject(value.compareTo(right!!.value.toBigDecimal()) != 0)
-        }
-        return when (args[0]!!.type()) {
-            ObjectType.INTEGER_OBJ -> notEquals(args[0] as? FoxInteger)
-            ObjectType.DOUBLE_OBJ -> notEquals(args[0] as? FoxDouble)
             else -> null
         }
     }
@@ -107,34 +106,6 @@ class FoxDouble(val value: BigDecimal = 0.toBigDecimal()): FoxObject() {
         return when (args[0]!!.type()) {
             ObjectType.INTEGER_OBJ -> divide(args[0] as? FoxInteger)
             ObjectType.DOUBLE_OBJ -> divide(args[0] as? FoxDouble)
-            else -> null
-        }
-    }
-
-    private fun moreThan(args: List<FoxObject?>): FoxObject? {
-        fun moreThan(right: FoxDouble?): FoxObject {
-            return nativeBooleanToBooleanObject(value > right!!.value)
-        }
-        fun moreThan(right: FoxInteger?): FoxObject {
-            return nativeBooleanToBooleanObject(value > right!!.value)
-        }
-        return when (args[0]!!.type()) {
-            ObjectType.INTEGER_OBJ -> moreThan(args[0] as? FoxInteger)
-            ObjectType.DOUBLE_OBJ -> moreThan(args[0] as? FoxDouble)
-            else -> null
-        }
-    }
-
-    private fun lessThan(args: List<FoxObject?>): FoxObject? {
-        fun lessThan(right: FoxDouble?): FoxObject {
-            return nativeBooleanToBooleanObject(value < right!!.value)
-        }
-        fun lessThan(right: FoxInteger?): FoxObject {
-            return nativeBooleanToBooleanObject(value < right!!.value)
-        }
-        return when (args[0]!!.type()) {
-            ObjectType.INTEGER_OBJ -> lessThan(args[0] as? FoxInteger)
-            ObjectType.DOUBLE_OBJ -> lessThan(args[0] as? FoxDouble)
             else -> null
         }
     }
