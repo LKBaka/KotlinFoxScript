@@ -87,4 +87,4 @@ class ClassEnvironment: Environment() {
     }
 }
 
-class FunctionEnvironment: Environment()
+class FunctionEnvironment(val name: String = ""): Environment()
